@@ -1,0 +1,22 @@
+FROM php:8.4-fpm-alpine AS base
+
+RUN apk add --no-cache libpng libxml2 oniguruma bash
+
+WORKDIR /var/www/html
+
+# Non-root user
+RUN addgroup -S laravel && adduser -S -G laravel laravel
+
+USER laravel
+
+FROM base AS prod
+
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+
+# Copy source code
+COPY src/ .
+
+# Install Laravel dependencies without dev
+RUN composer install --no-dev --optimize-autoloader
+
+CMD ["php-fpm"]

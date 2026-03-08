@@ -1,0 +1,86 @@
+services:
+
+  # PHP-FPM application
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile.dev
+    image: app
+    container_name: app
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html:delegated
+    env_file:
+      - ./src/.env
+    depends_on:
+      - mysql
+      - redis
+
+  # Nginx server
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+
+  # MySQL / MariaDB
+  mysql:
+    image: mariadb:10.6
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    env_file:
+      - ./src/.env
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:alpine
+    container_name: redis
+
+  # Composer helper
+  composer:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile.dev
+    image: composer
+    container_name: composer
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
+    entrypoint: ["composer", "--ignore-platform-reqs"]
+    depends_on:
+      - app
+
+  # Artisan helper
+  artisan:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile.dev
+    image: artisan
+    container_name: artisan
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
+    env_file:
+      - ./src/.env
+    entrypoint: ["php", "/var/www/html/artisan"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    tty: true
+
+# Persistent volume for DB
+volumes:
+  db_data:
