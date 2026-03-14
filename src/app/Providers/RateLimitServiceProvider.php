@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\ServiceProvider;
+
+class RateLimitServiceProvider extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(config('auth.rate_limit.login.max_attempts', 5))
+                ->by($request->ip())
+                ->response(function () {
+                    return response()->json(['message' => 'Too many login attempts. Please try again later.'], 429);
+                });
+        });
+
+        RateLimiter::for('forgot_password', function (Request $request) {
+            return Limit::perMinute(config('auth.rate_limit.forgot_password.max_attempts', 3))
+                ->by($request->ip())
+                ->response(function () {
+                    return response()->json(['message' => 'Too many requests. Please try again later.'], 429);
+                });
+        });
+
+    }
+}

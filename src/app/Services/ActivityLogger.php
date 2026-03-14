@@ -11,7 +11,7 @@ class ActivityLogger
             ->withProperties(array_merge([
                 'ip' => request()->ip(),
                 'url' => request()->fullUrl(),
-                'user_agent' => request()->userAgent()
+                'user_agent' => request()->userAgent(),
             ], $properties))
             ->log($description);
     }
