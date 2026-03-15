@@ -59,20 +59,24 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('src/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-composer-
 
       - name: Install Composer dependencies
+        working-directory: src
         run: composer install --no-interaction --prefer-dist
 
       - name: Install Node dependencies
+        working-directory: src
         run: npm ci
 
       - name: Copy .env.example to .env
+        working-directory: src
         run: cp .env.example .env
 
       - name: Generate application key
+        working-directory: src
         run: |
           php artisan key:generate
           php artisan config:clear
@@ -83,6 +87,7 @@ jobs:
           mysql -u root -proot -h 127.0.0.1 -e "CREATE DATABASE IF NOT EXISTS test_db;"
 
       - name: Update phpunit.xml for MySQL
+        working-directory: src
         run: |
           sed -i 's/<env name="DB_CONNECTION" value="sqlite"\/>/<env name="DB_CONNECTION" value="mysql"\/>/g' phpunit.xml
           sed -i 's/<env name="DB_DATABASE" value=":memory:"\/>//g' phpunit.xml
@@ -90,6 +95,7 @@ jobs:
           cat phpunit.xml | grep -A 10 '<php>'
 
       - name: Run tests
+        working-directory: src
         run: php artisan test --parallel
         env:
           DB_HOST: 127.0.0.1
@@ -119,14 +125,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('src/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-composer-
 
       - name: Install Composer dependencies
+        working-directory: src
         run: composer install --no-interaction --prefer-dist
 
       - name: Run Pint
+        working-directory: src
         run: vendor/bin/pint --test
 
   phpstan:
@@ -151,12 +159,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('src/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-composer-
 
       - name: Install Composer dependencies
+        working-directory: src
         run: composer install --no-interaction --prefer-dist
 
       - name: Run PHPStan
+        working-directory: src
         run: vendor/bin/phpstan analyse --memory-limit=1G
